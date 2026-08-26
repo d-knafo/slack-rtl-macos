@@ -215,9 +215,12 @@ asar_tool() {
 # The old fix.sh did the opposite of all this: it forced text-align:left, which
 # is the bug itself.
 write_rtl_patch() {
-  cat > "${WORKDIR}/rtl-patch.js" <<PATCH_EOF
-
-${MARK_BEGIN}
+  # The heredoc is quoted so the shell performs no expansion at all on the
+  # JavaScript below: backticks, $ and backslashes reach the file untouched.
+  # The markers are written separately for that reason.
+  {
+    printf '\n%s\n' "${MARK_BEGIN}"
+    cat <<'PATCH_EOF'
 (function () {
   if (typeof window === 'undefined' || typeof document === 'undefined') return;
 
@@ -263,8 +266,9 @@ ${MARK_BEGIN}
     start();
   }
 })();
-${MARK_END}
 PATCH_EOF
+    printf '%s\n' "${MARK_END}"
+  } > "${WORKDIR}/rtl-patch.js"
 }
 
 # ------------------------------------------------------------------- context
@@ -323,6 +327,44 @@ is_patched() {
   fi
   rm -rf "${probe}"
   return ${found}
+}
+
+# macOS 14 and later enforce App Management: one application may not modify
+# another application's bundle. This is a TCC control, not a file permission,
+# so sudo does not lift it. It surfaces as EPERM ("Operation not permitted"),
+# where a plain ownership issue would surface as EACCES ("Permission denied") —
+# which is what lets this probe tell the two apart without asking for a
+# password. Checked up front, before the backup and before quitting Slack.
+check_app_management() {
+  local probe="${RESOURCES}/.slack-rtl-probe"
+  local err
+  err="$(touch "${probe}" 2>&1 || true)"
+
+  if [[ -e "${probe}" ]]; then
+    rm -f "${probe}" 2>/dev/null || true
+    ok "app bundle is writable"
+    return 0
+  fi
+
+  if [[ "${err}" == *"Operation not permitted"* ]]; then
+    local app="${TERM_PROGRAM:-your terminal}"
+    die "macOS App Management is blocking writes to ${SLACK_APP}.
+       sudo cannot lift this: it is enforced by TCC, not by file permissions.
+
+       Grant the permission, then run this script again:
+         System Settings > Privacy & Security > App Management
+         turn on: ${app}
+
+       Open that pane directly with:
+         open \"x-apple.systempreferences:com.apple.preference.security?Privacy_AppBundles\"
+
+       Quit and reopen ${app} afterwards for it to take effect.
+       Nothing has been modified."
+  fi
+
+  # EACCES here simply means root owns the bundle, which sudo handles.
+  ok "app bundle reachable (elevation required)"
+  return 0
 }
 
 # Check that the hash we compute for an archive matches the one in Info.plist.
@@ -447,6 +489,7 @@ cmd_patch() {
   # Validate the method against app.asar, which we never modify: a safe baseline.
   verify_hash_method "app.asar"
   verify_hash_method "${ARCH_ASAR}"
+  check_app_management
 
   if is_patched; then
     ok "RTL patch already present — it will be cleanly reapplied"

@@ -123,6 +123,31 @@ The script therefore re-signs with neither `--options runtime` nor
 - Node.js — `brew install node`
 - The `asar` npm package, installed automatically if missing
 
+## If it stops at "App Management is blocking writes"
+
+macOS 14 and later enforce **App Management**: one application may not modify
+another application's bundle. It is a TCC control, not a file permission, so
+`sudo` does not lift it — the failure looks like this:
+
+```
+cp: /Applications/Slack.app/Contents/Resources/app-arm64.asar: Operation not permitted
+```
+
+Grant your terminal the permission and run the script again:
+
+```
+System Settings > Privacy & Security > App Management > enable your terminal
+```
+
+Or open that pane directly:
+
+```bash
+open "x-apple.systempreferences:com.apple.preference.security?Privacy_AppBundles"
+```
+
+Quit and reopen the terminal afterwards. The script checks this up front, before
+taking a backup or quitting Slack, so a missing permission costs you nothing.
+
 ## Tested against
 
 | | |
