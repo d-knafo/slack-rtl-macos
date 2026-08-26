@@ -1,5 +1,8 @@
 # slack-rtl
 
+[![downloads](https://img.shields.io/github/downloads/d-knafo/slack-rtl-macos/total?label=downloads)](https://github.com/d-knafo/slack-rtl-macos/releases)
+[![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
 Fix right-to-left (Hebrew/Arabic) text rendering in Slack Desktop on macOS.
 
 Slack resolves text direction correctly but its stylesheet forces
@@ -22,17 +25,23 @@ The fix is CSS, injected into Slack's renderer:
 }
 ```
 
+## Install
+
+```bash
+brew install d-knafo/tap/slack-rtl
+```
+
+Or clone the repo and run `./slack-rtl.sh` directly. Requires Node.js; the
+`asar` package installs automatically.
+
 ## Usage
 
 ```bash
-./slack-rtl.sh status              # inspect, changes nothing
-./slack-rtl.sh patch --dry-run     # show what would happen
-./slack-rtl.sh patch               # apply
-./slack-rtl.sh restore             # roll back
+slack-rtl status              # inspect, changes nothing
+slack-rtl patch --dry-run     # show what would happen
+slack-rtl patch               # apply
+slack-rtl restore             # roll back
 ```
-
-Requires Node.js (`brew install node`). The `asar` package installs
-automatically.
 
 ## Before you run it
 
