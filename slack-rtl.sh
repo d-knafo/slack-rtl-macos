@@ -281,12 +281,34 @@ detect_context() {
   command -v node >/dev/null 2>&1 \
     || die "Node.js is required. Install it with: brew install node"
 
-  NPM_ROOT="$(npm root -g)"
-  if [[ ! -d "${NPM_ROOT}/asar" ]]; then
-    step "Installing the asar package"
-    npm install -g asar >/dev/null
+  # Locate the asar module. When installed from npm it sits next to this
+  # script; otherwise fall back to the global root, installing it if needed.
+  local self="${BASH_SOURCE[0]}"
+  while [[ -L "${self}" ]]; do
+    local target
+    target="$(readlink "${self}")"
+    [[ "${target}" == /* ]] && self="${target}" || self="$(dirname "${self}")/${target}"
+  done
+  local script_dir
+  script_dir="$(cd "$(dirname "${self}")" && pwd)"
+
+  NPM_ROOT=""
+  local candidate
+  for candidate in "${script_dir}/node_modules" "${script_dir}/../node_modules"; do
+    if [[ -d "${candidate}/asar" ]]; then
+      NPM_ROOT="$(cd "${candidate}" && pwd)"
+      break
+    fi
+  done
+
+  if [[ -z "${NPM_ROOT}" ]]; then
     NPM_ROOT="$(npm root -g)"
-    [[ -d "${NPM_ROOT}/asar" ]] || die "failed to install asar."
+    if [[ ! -d "${NPM_ROOT}/asar" ]]; then
+      step "Installing the asar package"
+      npm install -g asar >/dev/null
+      NPM_ROOT="$(npm root -g)"
+      [[ -d "${NPM_ROOT}/asar" ]] || die "failed to install asar."
+    fi
   fi
 
   case "$(uname -m)" in

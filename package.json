@@ -1,0 +1,43 @@
+{
+  "name": "slack-rtl",
+  "version": "1.0.0",
+  "description": "Fix right-to-left (Hebrew/Arabic) text rendering in Slack Desktop on macOS",
+  "bin": {
+    "slack-rtl": "slack-rtl.sh"
+  },
+  "files": [
+    "slack-rtl.sh",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "asar": "^3.2.0"
+  },
+  "os": [
+    "darwin"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "slack",
+    "rtl",
+    "hebrew",
+    "arabic",
+    "bidi",
+    "unicode-bidi",
+    "macos",
+    "electron",
+    "asar"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/d-knafo/slack-rtl-macos.git"
+  },
+  "homepage": "https://github.com/d-knafo/slack-rtl-macos#readme",
+  "bugs": {
+    "url": "https://github.com/d-knafo/slack-rtl-macos/issues"
+  },
+  "author": "David Knafo",
+  "license": "MIT"
+}

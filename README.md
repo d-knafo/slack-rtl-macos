@@ -1,6 +1,8 @@
 # slack-rtl
 
 [![downloads](https://img.shields.io/github/downloads/d-knafo/slack-rtl-macos/total?label=downloads)](https://github.com/d-knafo/slack-rtl-macos/releases)
+[![npm](https://img.shields.io/npm/v/slack-rtl)](https://www.npmjs.com/package/slack-rtl)
+[![npm downloads](https://img.shields.io/npm/dm/slack-rtl?label=npm%20downloads)](https://www.npmjs.com/package/slack-rtl)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 Fix right-to-left (Hebrew/Arabic) text rendering in Slack Desktop on macOS.
@@ -28,11 +30,13 @@ The fix is CSS, injected into Slack's renderer:
 ## Install
 
 ```bash
-brew install d-knafo/tap/slack-rtl
+brew install d-knafo/tap/slack-rtl   # Homebrew
+npm install -g slack-rtl             # npm
+npx slack-rtl status                 # no install
 ```
 
-Or clone the repo and run `./slack-rtl.sh` directly. Requires Node.js; the
-`asar` package installs automatically.
+Or clone the repo and run `./slack-rtl.sh` directly. Requires Node.js and
+macOS.
 
 ## Usage
 
