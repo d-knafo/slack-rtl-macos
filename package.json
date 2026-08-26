@@ -1,6 +1,6 @@
 {
   "name": "slack-rtl",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Fix right-to-left (Hebrew/Arabic) text rendering in Slack Desktop on macOS",
   "bin": {
     "slack-rtl": "slack-rtl.sh"
