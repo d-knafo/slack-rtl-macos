@@ -1,6 +1,5 @@
 # slack-rtl
 
-[![downloads](https://img.shields.io/github/downloads/d-knafo/slack-rtl-macos/total?label=downloads)](https://github.com/d-knafo/slack-rtl-macos/releases)
 [![npm](https://img.shields.io/npm/v/slack-rtl)](https://www.npmjs.com/package/slack-rtl)
 [![npm downloads](https://img.shields.io/npm/dm/slack-rtl?label=npm%20downloads)](https://www.npmjs.com/package/slack-rtl)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
