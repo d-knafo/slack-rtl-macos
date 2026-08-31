@@ -52,11 +52,52 @@ Patching means modifying a signed app bundle and re-signing it ad-hoc:
 
 - **you will likely be signed out of your workspaces** — Slack's token is in the
   Keychain, and access is tied to the code signature
-- macOS may ask again for microphone / camera / screen-recording permission
+- macOS may ask again for microphone / camera permission
+- **on a managed Mac, screen recording is lost for good** — see
+  [Managed Macs](#managed-macs-mdm)
 - Apple notarization is lost
 - a Slack update overwrites the patch — rerun the script
 
 A full backup is taken before anything is touched, and `restore` puts it back.
+
+## Managed Macs (MDM)
+
+On a company Mac, screen recording is usually granted by a configuration
+profile rather than by you, and that profile grants it only to Slack signed by
+Slack Technologies:
+
+```
+certificate leaf[subject.OU] = BQR82RBBHL and identifier "com.tinyspeck.slackmacgap"
+```
+
+Ad-hoc re-signing drops the team identifier, so the patched app stops satisfying
+that requirement and `tccd` denies it. **Screen sharing in huddles breaks.**
+
+Nothing says why. System Settings still shows the toggle enabled, because the
+panel reports what the profile declares, not whether the installed app matches
+it — the only clue is the line underneath: *"This setting has been configured by
+a profile"*. And unlike the microphone, you cannot grant it back: the toggle
+belongs to the profile, and `tccutil reset` leaves MDM entries alone. Only
+`restore`, or reinstalling Slack, undoes it.
+
+`status` reports this, and `patch` warns before touching anything:
+
+```bash
+slack-rtl status
+```
+
+If you need RTL *and* screen sharing, there are two ways:
+
+- `restore`, and join huddles from the browser on the rare occasions you share
+  your screen — Chrome's screen-recording permission is granted by you, so it is
+  not pinned to anyone's certificate. The [safer
+  alternative](#safer-alternative) below gives you RTL there too.
+- ask your IT team to add a PPPC payload for a build signed with a Developer ID
+  certificate you control. A requirement on your own team identifier survives
+  Slack updates; one pinned to a `cdhash` would break on every re-patch.
+
+Keeping the profile's grant while modifying the bundle is not possible: it would
+take Slack's own signing certificate.
 
 ## If it stops at "App Management is blocking writes"
 
