@@ -18,7 +18,9 @@
 # WARNING — ad-hoc re-signing has consequences:
 #   - you will most likely be signed out of your workspaces (the token lives in
 #     the Keychain, and access to it is tied to the app's code signature);
-#   - macOS may ask again for microphone / camera / screen-recording permission;
+#   - macOS may ask again for microphone / camera permission;
+#   - on a managed Mac, screen recording granted by a configuration profile is
+#     lost and CANNOT be granted back — see "Managed Macs" in the README;
 #   - Apple notarization is lost;
 #   - a Slack auto-update overwrites the patch (just run the script again).
 #
@@ -271,6 +273,38 @@ PATCH_EOF
   } > "${WORKDIR}/rtl-patch.js"
 }
 
+# ------------------------------------------------------- managed Mac (MDM/PPPC)
+
+# On a managed Mac, screen recording is usually granted by a configuration
+# profile (a PPPC payload) rather than by the user, and such a payload pins
+# Slack to its Developer ID team:
+#
+#   certificate leaf[subject.OU] = BQR82RBBHL and identifier "com.tinyspeck.slackmacgap"
+#
+# Ad-hoc re-signing drops the team identifier, so the running app stops
+# satisfying that requirement and tccd denies it. Nothing says so out loud:
+# System Settings still shows the toggle enabled, because the panel reflects
+# what the profile declares, not whether the installed app matches it. The
+# toggle cannot be flipped either — the profile owns it — and `tccutil reset`
+# does not touch MDM entries. Screen sharing in huddles simply stops working,
+# and only `restore` (or reinstalling Slack) brings it back.
+managed_screencapture_profile() {
+  system_profiler SPConfigurationProfileDataType 2>/dev/null | awk '
+    /(kTCCService)?ScreenCapture[[:space:]]*=/ { inblock = 1; next }
+    inblock && /Identifier[[:space:]]*=[^;]*com\.tinyspeck\.slackmacgap/ { found = 1 }
+    inblock && /^[[:space:]]*\)/ { inblock = 0 }
+    END { exit(found ? 0 : 1) }
+  '
+}
+
+# Team identifier of the installed bundle. Empty once signed ad-hoc, which is
+# exactly what makes the profile's code requirement fail.
+bundle_team_id() {
+  codesign -dv "${SLACK_APP}" 2>&1 \
+    | sed -n 's/^TeamIdentifier=\(.*\)$/\1/p' \
+    | grep -v '^not set$' || true
+}
+
 # ------------------------------------------------------------------- context
 
 detect_context() {
@@ -450,6 +484,23 @@ cmd_status() {
   echo
   info "code signature:"
   codesign -dv "${SLACK_APP}" 2>&1 | sed 's/^/      /' || true
+
+  if managed_screencapture_profile; then
+    echo
+    step "Managed Mac"
+    info "a configuration profile grants screen recording to Slack"
+    if [[ -z "$(bundle_team_id)" ]]; then
+      c_red "    screen recording is DENIED — this bundle is signed ad-hoc and no"
+      c_red "    longer satisfies the profile's code requirement, so huddle screen"
+      c_red "    sharing is broken. System Settings still shows the toggle on: it"
+      c_red "    reports what the profile declares, not what this app is."
+      info "the toggle is owned by the profile, so it cannot be re-granted"
+      info "to get screen sharing back: ./slack-rtl.sh restore"
+    else
+      ok "signed by Slack — the profile applies, screen recording works"
+      info "patching breaks it; see \"Managed Macs\" in the README"
+    fi
+  fi
   echo
 }
 
@@ -487,9 +538,20 @@ confirm() {
   c_red "This script modifies Slack.app and re-signs it ad-hoc."
   echo "  Likely consequences:"
   echo "    - signed out of your workspaces (Keychain access is tied to the signature)"
-  echo "    - microphone / camera / screen-recording permissions to grant again"
+  echo "    - microphone / camera permissions to grant again"
   echo "    - Apple notarization lost"
   echo "    - patch overwritten by the next Slack update"
+  if managed_screencapture_profile; then
+    echo
+    c_red "  MANAGED MAC — screen recording here is granted by a configuration"
+    c_red "  profile, and that profile only grants it to Slack signed by Slack"
+    c_red "  Technologies. Re-signing ad-hoc breaks the match:"
+    echo "    - screen sharing in huddles will stop working"
+    echo "    - unlike the microphone, you CANNOT grant it back — the toggle in"
+    echo "      System Settings belongs to the profile, and tccutil cannot reset it"
+    echo "    - only 'restore' or reinstalling Slack brings it back"
+  fi
+
   echo
   echo "  A full backup is taken first. To roll back:"
   echo "    ./slack-rtl.sh restore"
@@ -618,6 +680,10 @@ cmd_patch() {
   echo
   c_green "Patch applied. Slack ${SLACK_VERSION} — automatic RTL enabled."
   info "If Slack asks you to sign in again, that is expected (see the warning)."
+  if managed_screencapture_profile; then
+    c_red "    Screen sharing in huddles is now denied by the configuration"
+    c_red "    profile and cannot be granted back — run 'restore' to undo."
+  fi
   info "Roll back at any time with: ./slack-rtl.sh restore"
   # Only offer to launch when there is a terminal to answer the prompt.
   # Launching unattended would be surprising, and `open` resolves by bundle
@@ -660,6 +726,10 @@ cmd_restore() {
     ok "original signature valid"
   else
     c_red "    restored signature does not verify — reinstall Slack from slack.com"
+  fi
+
+  if managed_screencapture_profile && [[ -n "$(bundle_team_id)" ]]; then
+    ok "screen recording granted by the profile applies again"
   fi
 
   echo
